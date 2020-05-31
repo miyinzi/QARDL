@@ -1,0 +1,150 @@
+---
+title: "Quantile ARDL"
+author: "Chris Miyinzi Mwungu"
+date: "5/31/2020"
+output:
+  html_document:
+    highlight: tango
+    number_sections: yes
+    theme: united
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+  word_document:
+    toc: yes
+    toc_depth: '4'      
+      
+      
+  pdf_document:
+    toc: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+
+path <- paste("C:\\Users\\cmmwungu\\Desktop\\mwungu\\")
+
+knitr::opts_knit$set(root.dir = normalizePath(path))
+
+ipak <- function(pkg){
+  new_pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new_pkg)) 
+    install.packages(new_pkg, dependencies = TRUE)
+  sapply(pkg, require, character.only = TRUE)
+}
+
+#Create list of packages, call function and remove list and function
+packages <- c("quantmod", 'quantreg', "forecast", "readxl", "tidyverse", "pastecs", "ggpubr", "ggthemes","tinytex")
+ipak(packages)
+rm(packages, ipak, new_pkg)
+
+```
+
+
+## Loading data
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+data <- read_excel("mwungu.xlsx", sheet = "d1", na = "---")
+
+```
+
+
+## Generating lags
+
+```{r,,comment=NA, message=FALSE, echo=FALSE}
+df <- data %>% mutate(lgdpo=log(gdpo))
+df$l.lgdpo <- lag(df$lgdpo, n=1L)
+df$l.epa <- lag(df$epa, n=1L)
+df$l.gdp <- lag(df$gdpo, n=1L)
+
+```
+
+
+## Stats
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+pander::pander(stat.desc(df))
+
+```
+
+
+### Qqplot
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+ggqqplot(df$l.lgdpo) 
+
+```
+
+### Qqplot 2
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+ggqqplot(df$epa) 
+
+```
+
+## Test
+### Shapiro test
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+shapiro.test(df$gdpo)
+
+```
+
+
+### Shapiro test 2
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+shapiro.test(df$epa)
+
+```
+
+## Model 
+
+
+### Neat model using jtools
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+taus<-c(0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95)
+
+for (i in seq_along(taus)) {
+  mod <- rq(gdpo ~ l.gdp + lap + kap + l.epa + sizo + topo, tau=taus[i],data = df)
+  print(jtools::summ(mod))
+  
+}
+
+```
+
+### Neat model using stargazer
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+
+taus<-c(0.05,0.10,0.15,0.20,0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95)
+
+for (i in seq_along(taus)) {
+  mod <- rq(gdpo ~ l.gdp + lap + kap + l.epa + sizo + topo, tau=taus[i],data = df)
+  print(summary(mod, se = 'boot'))
+  print(rep("-"),15)
+  stargazer::stargazer(mod, type = "text")
+  
+}
+```
+
+
+### Plot model
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+qregrd <- rq(gdpo ~ l.gdp + lap + kap + l.epa + sizo + topo, tau =seq(0.05, 0.95, by=0.05), data = df)
+plot(qregrd)
+
+```
+
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+
+```
+
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE, comment=NA}
+
+```
+
+
+
